@@ -20,6 +20,7 @@ import {
   ContentFormat,
   PublishingChannel,
 } from "@/lib/data/contentItems";
+import { MONTH_NAMES, getDaysInMonth } from "@/lib/calendar";
 
 export interface CreateContentModalProps {
   isOpen: boolean;
@@ -28,6 +29,10 @@ export interface CreateContentModalProps {
   initialItem?: ContentItem | null;
   clientName?: string;
   clientSlug?: string;
+  /** Calendar context for new items. Defaults preserve the previous Nov 2024 behaviour. */
+  month?: number;
+  year?: number;
+  initialDay?: number;
 }
 
 export function CreateContentModal({
@@ -37,7 +42,12 @@ export function CreateContentModal({
   initialItem,
   clientName = "Kanso Botanicals",
   clientSlug = "kanso-botanicals",
+  month = 11,
+  year = 2024,
+  initialDay,
 }: CreateContentModalProps) {
+  const monthLabel = MONTH_NAMES[month - 1] ?? "November";
+  const daysInMonth = getDaysInMonth(year, month);
   const [format, setFormat] = React.useState<ContentFormat>(
     initialItem?.format || "carousel"
   );
@@ -80,6 +90,13 @@ export function CreateContentModal({
       }
     }
   }, [initialItem]);
+
+  // Pre-fill the day when the modal is opened from a specific calendar date
+  React.useEffect(() => {
+    if (isOpen && !initialItem && initialDay) {
+      setDay(initialDay);
+    }
+  }, [isOpen, initialItem, initialDay]);
 
   if (!isOpen) return null;
 
@@ -132,8 +149,8 @@ export function CreateContentModal({
       caption,
       channels,
       day: Number(day),
-      month: 11,
-      year: 2024,
+      month,
+      year,
       time,
       aspectRatio,
       clientName,
@@ -483,14 +500,14 @@ export function CreateContentModal({
                       <input
                         type="number"
                         min={1}
-                        max={30}
+                        max={daysInMonth}
                         value={day}
                         onChange={(e) => setDay(Number(e.target.value))}
                         className="w-10 rounded border border-hairline px-1.5 py-0.5 text-xs text-center font-medium bg-white"
-                        title="Day of November"
+                        title={`Day of ${monthLabel}`}
                       />
                       <span className="font-medium text-ink-primary text-xs sm:text-body-sm">
-                        Nov, 2024 •
+                        {monthLabel.slice(0, 3)}, {year} •
                       </span>
                       <input
                         type="text"
