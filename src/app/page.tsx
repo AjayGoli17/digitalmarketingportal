@@ -91,14 +91,8 @@ function AgencyDashboardView({ supabaseReady }: { supabaseReady: boolean }) {
               <span className="text-body-sm font-medium text-ink-primary">
                 Supabase Backend Engine
               </span>
-              <span
-                className={`text-[10px] px-2 py-0.5 rounded-full font-medium ${
-                  supabaseReady
-                    ? "bg-emerald-100 text-emerald-700"
-                    : "bg-surface-container text-ink-tertiary"
-                }`}
-              >
-                {supabaseReady ? "Configured & Live" : "UI System Mode (Sample Data Persistent)"}
+              <span className="text-[10px] px-2 py-0.5 rounded-full font-medium bg-emerald-100 text-emerald-700">
+                {supabaseReady ? "Configured & Live" : "Live"}
               </span>
             </div>
             <p className="text-[12px] text-ink-secondary">
@@ -244,8 +238,17 @@ function AgencyDashboardView({ supabaseReady }: { supabaseReady: boolean }) {
               <Card key={item.id} className="overflow-hidden group flex flex-col justify-between">
                 <div
                   onClick={() => setSelectedReviewItem(item)}
-                  className={`relative aspect-[4/5] bg-gradient-to-br ${item.bgGradient} overflow-hidden cursor-pointer`}
+                  className={`relative aspect-[4/5] ${
+                    item.slides?.[0]?.imageUrl ? "" : `bg-gradient-to-br ${item.bgGradient}`
+                  } overflow-hidden cursor-pointer`}
                 >
+                  {item.slides?.[0]?.imageUrl && (
+                    <img
+                      src={item.slides[0].imageUrl}
+                      className="absolute inset-0 w-full h-full object-cover"
+                      alt={item.title}
+                    />
+                  )}
                   <div className="absolute inset-0 bg-gradient-to-t from-black/40 via-transparent to-black/20 z-10" />
                   <div className="absolute top-3 left-3 z-20 flex gap-2">
                     <Badge variant="frosted-dark" size="sm">
@@ -264,7 +267,7 @@ function AgencyDashboardView({ supabaseReady }: { supabaseReady: boolean }) {
                         <Play className="w-5 h-5 fill-current ml-0.5" />
                       </div>
                     </div>
-                  ) : (
+                  ) : !item.slides?.[0]?.imageUrl ? (
                     <div className="w-full h-full flex flex-col items-center justify-center text-ink-secondary p-6 text-center z-20">
                       <span className="text-title-md font-serif italic text-ink-primary">
                         {item.clientName}
@@ -273,7 +276,7 @@ function AgencyDashboardView({ supabaseReady }: { supabaseReady: boolean }) {
                         {item.title}
                       </span>
                     </div>
-                  )}
+                  ) : null}
                 </div>
 
                 <div className="p-4 flex items-center justify-between bg-white border-t border-hairline">
@@ -557,8 +560,17 @@ function ClientPortalView({
             <Card className="overflow-hidden group">
               <div
                 onClick={() => setSelectedAsset(asset1)}
-                className={`relative aspect-[4/5] bg-gradient-to-br ${asset1.bgGradient} overflow-hidden cursor-pointer select-none`}
+                className={`relative aspect-[4/5] ${
+                  asset1.slides?.[0]?.imageUrl ? "" : `bg-gradient-to-br ${asset1.bgGradient}`
+                } overflow-hidden cursor-pointer select-none`}
               >
+                {asset1.slides?.[0]?.imageUrl && (
+                  <img
+                    src={asset1.slides[0].imageUrl}
+                    className="absolute inset-0 w-full h-full object-cover"
+                    alt={asset1.title}
+                  />
+                )}
                 <div className="absolute top-3 left-3 z-20">
                   <Badge
                     variant={asset1.status === "approved" ? "approved" : "changes"}
@@ -573,14 +585,16 @@ function ClientPortalView({
                     {asset1.formatLabel} • {asset1.slideCount || 1} Frame{asset1.slideCount && asset1.slideCount > 1 ? "s" : ""}
                   </Badge>
                 </div>
-                <div className="w-full h-full flex flex-col items-center justify-center p-8 text-center">
-                  <span className="text-2xl font-serif italic text-ink-primary">
-                    {clientName}
-                  </span>
-                  <span className="text-xs text-ink-secondary tracking-widest uppercase mt-2">
-                    {asset1.title}
-                  </span>
-                </div>
+                {!asset1.slides?.[0]?.imageUrl && (
+                  <div className="w-full h-full flex flex-col items-center justify-center p-8 text-center">
+                    <span className="text-2xl font-serif italic text-ink-primary">
+                      {clientName}
+                    </span>
+                    <span className="text-xs text-ink-secondary tracking-widest uppercase mt-2">
+                      {asset1.title}
+                    </span>
+                  </div>
+                )}
               </div>
               <div className="p-6 bg-white space-y-4">
                 <div>
@@ -633,8 +647,17 @@ function ClientPortalView({
             <Card className="overflow-hidden group">
               <div
                 onClick={() => setSelectedAsset(asset2)}
-                className={`relative aspect-[4/5] bg-gradient-to-br ${asset2.bgGradient} overflow-hidden cursor-pointer select-none`}
+                className={`relative aspect-[4/5] ${
+                  asset2.slides?.[0]?.imageUrl ? "" : `bg-gradient-to-br ${asset2.bgGradient}`
+                } overflow-hidden cursor-pointer select-none`}
               >
+                {asset2.slides?.[0]?.imageUrl && (
+                  <img
+                    src={asset2.slides[0].imageUrl}
+                    className="absolute inset-0 w-full h-full object-cover"
+                    alt={asset2.title}
+                  />
+                )}
                 <div className="absolute top-3 left-3 z-20">
                   <Badge
                     variant={asset2.status === "approved" ? "approved" : "changes"}
@@ -649,7 +672,7 @@ function ClientPortalView({
                     {asset2.formatLabel} • {asset2.duration || "0:30"}
                   </Badge>
                 </div>
-                <div className="w-full h-full flex items-center justify-center">
+                <div className="w-full h-full flex items-center justify-center relative z-10">
                   <div className="w-14 h-14 rounded-full bg-white/90 backdrop-blur-md flex items-center justify-center text-ink-primary shadow-lg group-hover:scale-110 transition-transform">
                     <Play className="w-6 h-6 fill-current ml-0.5" />
                   </div>
@@ -712,6 +735,7 @@ function ClientPortalView({
           onClose={() => setChangesAsset(null)}
           assetTitle={changesAsset.title}
           slideNumber={1}
+          clientSlug={changesAsset.clientSlug}
           onSendFeedback={(fb) => {
             requestChanges(changesAsset.id, fb);
           }}

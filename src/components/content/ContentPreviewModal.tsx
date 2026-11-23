@@ -13,7 +13,6 @@ import {
   Heart,
   MessageCircle,
   Share2,
-  ExternalLink,
   Shield,
   Clock,
   Instagram,
@@ -23,6 +22,7 @@ import { Button } from "@/components/ui/Button";
 import { Badge } from "@/components/ui/Badge";
 import { Card } from "@/components/ui/Card";
 import { ContentItem } from "@/lib/data/contentItems";
+import { getClientBySlug } from "@/lib/data/clients";
 
 export interface ContentPreviewModalProps {
   item: ContentItem | null;
@@ -64,6 +64,14 @@ export function ContentPreviewModal({
 
   const totalSlides = slides.length;
   const currentSlide = slides[currentSlideIndex] || slides[0];
+
+  // Pins the client left on the slide currently on screen, oldest first for stable numbering
+  const slidePins = (item.feedbackHistory || [])
+    .filter(
+      (fb) => (fb.slideNumber || 1) === currentSlideIndex + 1 && fb.pinX !== undefined && fb.pinY !== undefined
+    )
+    .slice()
+    .reverse();
 
   const handleCopyCaption = () => {
     if (typeof window !== "undefined") {
@@ -120,14 +128,6 @@ export function ContentPreviewModal({
             <span className="text-xs text-ink-tertiary hidden md:inline">
               v2.1 (Approved Draft)
             </span>
-            <button
-              type="button"
-              onClick={() => alert("Live Preview mode active.")}
-              className="inline-flex items-center gap-1 text-xs font-medium text-ink-secondary hover:text-ink-primary border border-hairline-subtle rounded-md px-2.5 py-1 bg-white hover:bg-surface-container-low transition-colors"
-            >
-              <ExternalLink className="w-3 h-3" />
-              <span>Live Preview</span>
-            </button>
             <button
               type="button"
               onClick={onClose}
@@ -194,23 +194,43 @@ export function ContentPreviewModal({
               )}
 
               {/* Main Visual Artwork Layer */}
-              <div
-                className={`w-full h-full bg-gradient-to-br ${
-                  currentSlide.bgGradient || item.bgGradient
-                } flex flex-col items-center justify-center p-8 text-center select-none`}
-              >
-                <div className="p-4 rounded-xl bg-white/20 backdrop-blur-sm border border-white/30 max-w-[280px]">
-                  <span className="text-xl font-serif italic text-ink-primary block leading-tight">
-                    {item.clientName}
-                  </span>
-                  <span className="text-sm font-medium text-ink-primary mt-1 block">
-                    {currentSlide.title || item.title}
-                  </span>
-                  <span className="text-[10px] text-ink-secondary tracking-widest uppercase mt-2 block font-semibold">
-                    AUTUMN CAMPAIGN
-                  </span>
+              {currentSlide.imageUrl ? (
+                <img
+                  src={currentSlide.imageUrl}
+                  className="w-full h-full object-cover"
+                  alt={currentSlide.title || item.title}
+                />
+              ) : (
+                <div
+                  className={`w-full h-full bg-gradient-to-br ${
+                    currentSlide.bgGradient || item.bgGradient
+                  } flex flex-col items-center justify-center p-8 text-center select-none`}
+                >
+                  <div className="p-4 rounded-xl bg-white/20 backdrop-blur-sm border border-white/30 max-w-[280px]">
+                    <span className="text-xl font-serif italic text-ink-primary block leading-tight">
+                      {item.clientName}
+                    </span>
+                    <span className="text-sm font-medium text-ink-primary mt-1 block">
+                      {currentSlide.title || item.title}
+                    </span>
+                    <span className="text-[10px] text-ink-secondary tracking-widest uppercase mt-2 block font-semibold">
+                      AUTUMN CAMPAIGN
+                    </span>
+                  </div>
                 </div>
-              </div>
+              )}
+
+              {/* Numbered feedback pins for this slide, agency view */}
+              {slidePins.map((pin, idx) => (
+                <div
+                  key={pin.id}
+                  style={{ left: `${pin.pinX}%`, top: `${pin.pinY}%` }}
+                  className="absolute -translate-x-1/2 -translate-y-1/2 w-6 h-6 rounded-full bg-red-600 text-white font-bold text-[11px] flex items-center justify-center shadow-lg border-2 border-white z-20"
+                  title={pin.note}
+                >
+                  {idx + 1}
+                </div>
+              ))}
 
               {/* Instagram Bottom Overlay */}
               <div className="absolute bottom-0 inset-x-0 p-4 bg-gradient-to-t from-black/60 via-black/20 to-transparent text-white z-20 flex items-center justify-between">
@@ -268,9 +288,15 @@ export function ContentPreviewModal({
                     }`}
                   >
                     <div
-                      className={`w-full h-full bg-gradient-to-br ${s.bgGradient} flex items-end justify-center pb-1 text-[9px] font-bold text-ink-primary`}
+                      className={`w-full h-full ${
+                        s.imageUrl ? "" : `bg-gradient-to-br ${s.bgGradient}`
+                      } flex items-end justify-center pb-1 text-[9px] font-bold text-ink-primary`}
                     >
-                      0{idx + 1}
+                      {s.imageUrl ? (
+                        <img src={s.imageUrl} className="w-full h-full object-cover" alt={s.title} />
+                      ) : (
+                        <>0{idx + 1}</>
+                      )}
                     </div>
                   </button>
                 ))}
@@ -324,6 +350,52 @@ export function ContentPreviewModal({
                 </div>
               </div>
 
+              {/* Client Feedback List */}
+              {item.feedbackHistory && item.feedbackHistory.length > 0 && (
+                <div className="space-y-2 pt-2 border-t border-hairline">
+                  <span className="text-xs font-semibold text-ink-secondary uppercase tracking-wider flex items-center gap-1.5">
+                    <MessageCircle className="w-3.5 h-3.5" /> Client Feedback ({item.feedbackHistory.length})
+                  </span>
+                  <div className="space-y-2 max-h-40 overflow-y-auto">
+                    {item.feedbackHistory.map((fb) => {
+                      const group = (item.feedbackHistory || [])
+                        .filter(
+                          (f) =>
+                            (f.slideNumber || 1) === (fb.slideNumber || 1) &&
+                            f.pinX !== undefined &&
+                            f.pinY !== undefined
+                        )
+                        .slice()
+                        .reverse();
+                      const pinNumber = group.findIndex((f) => f.id === fb.id) + 1;
+                      return (
+                        <div key={fb.id} className="p-2.5 rounded-lg bg-amber-50/70 border border-amber-200 text-xs space-y-0.5">
+                          <div className="flex items-center justify-between font-semibold text-amber-900">
+                            <span className="flex items-center gap-1.5">
+                              {pinNumber > 0 && (
+                                <span className="w-4 h-4 rounded-full bg-red-600 text-white text-[9px] flex items-center justify-center shrink-0">
+                                  {pinNumber}
+                                </span>
+                              )}
+                              Slide {fb.slideNumber || 1} • {fb.targetArea}
+                            </span>
+                            <span className="text-[10px] text-amber-700 font-normal">{fb.createdAt}</span>
+                          </div>
+                          <p className="text-amber-800 leading-relaxed">&ldquo;{fb.note}&rdquo;</p>
+                          {fb.referenceImageUrl && (
+                            <img
+                              src={fb.referenceImageUrl}
+                              className="w-12 h-12 rounded-lg object-cover border border-amber-200 mt-1"
+                              alt="Reference attached by reviewer"
+                            />
+                          )}
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+              )}
+
               {/* Caption Preview Box */}
               <div className="space-y-2 pt-2 border-t border-hairline">
                 <div className="flex justify-between items-center">
@@ -366,7 +438,6 @@ export function ContentPreviewModal({
                       if (onStatusChange) {
                         onStatusChange(item.id, "approved");
                       }
-                      alert("Deliverable marked Approved & Queued for publication!");
                     }}
                   >
                     Approve & Schedule Post
@@ -432,7 +503,7 @@ export function ContentPreviewModal({
                   Client Presentation Mode
                 </h4>
                 <p className="text-xs text-ink-secondary mt-0.5 leading-relaxed">
-                  Elena Rostova will receive this clean interactive review view upon sending for final sign-off.
+                  {getClientBySlug(item.clientSlug).contactName} will receive this clean interactive review view upon sending for final sign-off.
                 </p>
               </div>
             </div>

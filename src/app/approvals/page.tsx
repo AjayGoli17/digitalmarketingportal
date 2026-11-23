@@ -136,7 +136,7 @@ export default function ApprovalsPage() {
         <div>
           <div className="flex items-center gap-2 mb-1.5 text-label-caps text-ink-tertiary uppercase font-semibold tracking-wider">
             <span className="w-1.5 h-1.5 rounded-full bg-aura-primary" />
-            <span>{isClientView ? `${selectedClient} Portal` : "Studio Nord Agency"}</span>
+            <span>{isClientView ? `${selectedClient} Portal` : "Aura Editorial Agency"}</span>
             <span>•</span>
             <span>Approval Pipeline</span>
           </div>
@@ -172,7 +172,7 @@ export default function ApprovalsPage() {
             </div>
             <div>
               <h3 className="text-body-sm font-semibold text-ink-primary">
-                Workflow Synchronization (Sample Mode)
+                Workflow Synchronization
               </h3>
               <p className="text-xs text-ink-secondary">
                 {clientFiltered.length} total deliverables tracked across {selectedClient} cycle
@@ -295,7 +295,7 @@ export default function ApprovalsPage() {
           onClick={resetSampleData}
           className="text-[11px] text-ink-tertiary hover:text-ink-primary underline transition-colors"
         >
-          Reset Sample Queue
+          Reset Demo Queue
         </button>
       </div>
 
@@ -338,8 +338,18 @@ export default function ApprovalsPage() {
                 {/* Media Preview Area */}
                 <div
                   onClick={() => setSelectedAsset(item)}
-                  className={`relative aspect-[4/5] bg-gradient-to-br ${item.bgGradient} flex flex-col justify-between p-4 overflow-hidden cursor-pointer select-none`}
+                  className={`relative aspect-[4/5] ${
+                    item.slides?.[0]?.imageUrl ? "" : `bg-gradient-to-br ${item.bgGradient}`
+                  } flex flex-col justify-between p-4 overflow-hidden cursor-pointer select-none`}
                 >
+                  {item.slides?.[0]?.imageUrl && (
+                    <img
+                      src={item.slides[0].imageUrl}
+                      className="absolute inset-0 w-full h-full object-cover z-0"
+                      alt={item.title}
+                    />
+                  )}
+
                   <div className="flex items-center justify-between z-20">
                     <Badge variant="frosted-dark" size="sm">
                       {item.formatLabel.toUpperCase()}
@@ -354,10 +364,10 @@ export default function ApprovalsPage() {
                   </div>
 
                   {isVideo ? (
-                    <div className="w-14 h-14 rounded-full bg-white/90 backdrop-blur-md flex items-center justify-center text-ink-primary shadow-lg mx-auto my-auto group-hover:scale-110 transition-transform">
+                    <div className="w-14 h-14 rounded-full bg-white/90 backdrop-blur-md flex items-center justify-center text-ink-primary shadow-lg mx-auto my-auto group-hover:scale-110 transition-transform z-20">
                       <Play className="w-6 h-6 fill-current ml-0.5" />
                     </div>
-                  ) : (
+                  ) : !item.slides?.[0]?.imageUrl ? (
                     <div className="my-auto text-center p-6">
                       <span className="text-2xl font-serif italic text-ink-primary block leading-tight">
                         {item.clientName}
@@ -366,7 +376,7 @@ export default function ApprovalsPage() {
                         {item.title}
                       </span>
                     </div>
-                  )}
+                  ) : null}
 
                   <div className="z-20 text-[11px] text-white/90 flex items-center justify-between bg-black/40 backdrop-blur-sm px-3 py-1.5 rounded-lg">
                     <span className="truncate">
@@ -557,6 +567,7 @@ export default function ApprovalsPage() {
           onClose={() => setChangesAsset(null)}
           assetTitle={changesAsset.title}
           slideNumber={1}
+          clientSlug={changesAsset.clientSlug}
           onSendFeedback={(fb) => {
             requestChanges(changesAsset.id, fb);
           }}

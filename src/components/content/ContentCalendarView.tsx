@@ -15,6 +15,9 @@ import {
   CalendarX,
   Moon,
   Coffee,
+  CheckCircle2,
+  AlertCircle,
+  X,
 } from "lucide-react";
 import { Button } from "@/components/ui/Button";
 import { Badge, BadgeVariant } from "@/components/ui/Badge";
@@ -85,9 +88,10 @@ function ChannelChips({ channels }: { channels: PublishingChannel[] }) {
 }
 
 export function ContentCalendarView() {
-  const { items, createContent, deleteContent, approveContent } = useContentWorkflow();
+  const { items, createContent, deleteContent, approveContent, lastActionNotice, dismissNotice, error, clearError } =
+    useContentWorkflow();
   const [viewMode, setViewMode] = React.useState<"calendar" | "list">("calendar");
-  const [selectedClientSlug, setSelectedClientSlug] = React.useState<string>("kanso-botanicals");
+  const [selectedClientSlug, setSelectedClientSlug] = React.useState<string>("all");
   const [selectedFormatFilter, setSelectedFormatFilter] = React.useState<"all" | ContentFormat>("all");
 
   // "Today" and the visible month are resolved on the client so server and browser
@@ -384,6 +388,40 @@ export function ContentCalendarView() {
 
   return (
     <div className="space-y-8 animate-in fade-in duration-300 pb-16">
+      {/* Transient Action Notice Banner */}
+      {lastActionNotice && (
+        <div className="p-3.5 rounded-xl bg-emerald-50 border border-emerald-200 text-emerald-900 text-xs flex items-center justify-between shadow-whisper animate-in slide-in-from-top-2">
+          <div className="flex items-center gap-2">
+            <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0" />
+            <span className="font-medium">{lastActionNotice}</span>
+          </div>
+          <button
+            type="button"
+            onClick={dismissNotice}
+            className="text-emerald-700 hover:text-emerald-900 p-1"
+          >
+            <X className="w-3.5 h-3.5" />
+          </button>
+        </div>
+      )}
+
+      {/* Error Banner */}
+      {error && (
+        <div className="p-3.5 rounded-xl bg-red-50 border border-red-200 text-red-900 text-xs flex items-center justify-between shadow-whisper">
+          <div className="flex items-center gap-2">
+            <AlertCircle className="w-4 h-4 text-red-600 shrink-0" />
+            <span className="font-medium">{error}</span>
+          </div>
+          <button
+            type="button"
+            onClick={clearError}
+            className="text-red-700 hover:text-red-900 p-1"
+          >
+            <X className="w-3.5 h-3.5" />
+          </button>
+        </div>
+      )}
+
       {/* Top Header */}
       <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
         <div>
@@ -709,10 +747,20 @@ export function ContentCalendarView() {
                         <td className="py-3.5 px-4 font-medium text-ink-primary">
                           <div className="flex items-center gap-3">
                             <div
-                              className={`w-8 h-8 rounded-md bg-gradient-to-br ${item.bgGradient} border border-hairline shrink-0 flex items-center justify-center text-[9px] font-serif italic text-ink-primary`}
+                              className={`w-8 h-8 rounded-md overflow-hidden ${
+                                item.slides?.[0]?.imageUrl ? "" : `bg-gradient-to-br ${item.bgGradient}`
+                              } border border-hairline shrink-0 flex items-center justify-center text-[9px] font-serif italic text-ink-primary`}
                               aria-hidden
                             >
-                              {item.clientInitials}
+                              {item.slides?.[0]?.imageUrl ? (
+                                <img
+                                  src={item.slides[0].imageUrl}
+                                  className="w-full h-full object-cover"
+                                  alt={item.title}
+                                />
+                              ) : (
+                                item.clientInitials
+                              )}
                             </div>
                             <button
                               type="button"

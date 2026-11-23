@@ -23,7 +23,8 @@ import {
 import { Button } from "@/components/ui/Button";
 import { Badge, BadgeVariant } from "@/components/ui/Badge";
 import { Card } from "@/components/ui/Card";
-import { ContentItem } from "@/lib/data/contentItems";
+import { ContentItem, FeedbackEntry } from "@/lib/data/contentItems";
+import { getClientBySlug } from "@/lib/data/clients";
 import { RequestChangesModal } from "./RequestChangesModal";
 import { EditAndResubmitModal } from "@/components/content/EditAndResubmitModal";
 import { useViewMode } from "@/components/context/ViewModeContext";
@@ -58,6 +59,8 @@ export function AssetReviewDetailView({
   const [copied, setCopied] = React.useState(false);
   const [showPinCallout, setShowPinCallout] = React.useState(true);
   const [showHistory, setShowHistory] = React.useState(false);
+  const [pendingPin, setPendingPin] = React.useState<{ x: number; y: number } | null>(null);
+  const [selectedPinNote, setSelectedPinNote] = React.useState<FeedbackEntry | null>(null);
 
   const slides = currentItem.slides && currentItem.slides.length > 0
     ? currentItem.slides
@@ -80,7 +83,8 @@ export function AssetReviewDetailView({
   };
 
   const handleApprove = () => {
-    approveContent(currentItem.id, "Elena Rostova (Client)");
+    const contactName = getClientBySlug(currentItem.clientSlug).contactName;
+    approveContent(currentItem.id, `${contactName} (Client)`);
     if (onApprove) onApprove(currentItem.id);
   };
 
@@ -96,6 +100,25 @@ export function AssetReviewDetailView({
     currentItem.feedbackHistory && currentItem.feedbackHistory.length > 0
       ? currentItem.feedbackHistory[0]
       : null;
+
+  // Existing pins for the slide currently on screen, oldest first so pin numbers are stable
+  const slidePins = (currentItem.feedbackHistory || [])
+    .filter(
+      (fb) => (fb.slideNumber || 1) === currentSlide + 1 && fb.pinX !== undefined && fb.pinY !== undefined
+    )
+    .slice()
+    .reverse();
+
+  const canPinFeedback = isClientView && currentItem.status === "pending";
+
+  const handleImageClick = (e: React.MouseEvent<HTMLDivElement>) => {
+    if (!canPinFeedback) return;
+    const rect = e.currentTarget.getBoundingClientRect();
+    const x = Math.max(0, Math.min(100, ((e.clientX - rect.left) / rect.width) * 100));
+    const y = Math.max(0, Math.min(100, ((e.clientY - rect.top) / rect.height) * 100));
+    setPendingPin({ x, y });
+    setIsChangesOpen(true);
+  };
 
   const statusVariant: BadgeVariant =
     currentItem.status === "approved"
@@ -146,10 +169,18 @@ export function AssetReviewDetailView({
       {/* Main Asset Frame matching content_detail.png */}
       <div className="rounded-2xl overflow-hidden border border-hairline shadow-popover bg-white">
         <div
-          className={`relative aspect-[4/5] bg-gradient-to-br ${
-            slides[currentSlide]?.bgGradient || currentItem.bgGradient
+          className={`relative aspect-[4/5] ${
+            slides[currentSlide]?.imageUrl ? "" : `bg-gradient-to-br ${slides[currentSlide]?.bgGradient || currentItem.bgGradient}`
           } flex flex-col justify-between overflow-hidden group`}
         >
+          {slides[currentSlide]?.imageUrl && (
+            <img
+              src={slides[currentSlide].imageUrl}
+              className="absolute inset-0 w-full h-full object-cover z-0"
+              alt={slides[currentSlide].title || currentItem.title}
+            />
+          )}
+
           {/* Top Frame Bar: Avatar & Slide Count */}
           <div className="p-4 z-20 flex items-center justify-between text-white drop-shadow">
             <div className="flex items-center gap-2.5">
@@ -172,24 +203,48 @@ export function AssetReviewDetailView({
           </div>
 
           {/* Visual Canvas Representation */}
-          <div className="flex-1 flex flex-col items-center justify-center text-center p-6 select-none relative">
-            <div className="p-5 rounded-2xl bg-white/30 backdrop-blur-md border border-white/40 max-w-[260px] shadow-sm">
-              <span className="text-xl font-serif italic text-ink-primary block leading-tight">
-                {currentItem.clientName}
-              </span>
-              <span className="text-xs font-semibold text-ink-secondary tracking-widest uppercase mt-1 block">
-                {slides[currentSlide]?.title || currentItem.title}
-              </span>
-            </div>
+          <div
+            onClick={handleImageClick}
+            className={`flex-1 flex flex-col items-center justify-center text-center p-6 select-none relative z-10 ${
+              canPinFeedback ? "cursor-crosshair" : ""
+            }`}
+            title={canPinFeedback ? "Click on the image to pin feedback at that spot" : undefined}
+          >
+            {!slides[currentSlide]?.imageUrl && (
+              <div className="p-5 rounded-2xl bg-white/30 backdrop-blur-md border border-white/40 max-w-[260px] shadow-sm">
+                <span className="text-xl font-serif italic text-ink-primary block leading-tight">
+                  {currentItem.clientName}
+                </span>
+                <span className="text-xs font-semibold text-ink-secondary tracking-widest uppercase mt-1 block">
+                  {slides[currentSlide]?.title || currentItem.title}
+                </span>
+              </div>
+            )}
 
-            {/* Interactive Feedback Pin Node (1) pinned over media if feedback exists */}
-            {latestFeedback && (
+            {/* Numbered feedback pins for this slide */}
+            {slidePins.map((pin, idx) => (
               <div
-                onClick={() => setShowPinCallout((prev) => !prev)}
-                className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-7 h-7 rounded-full bg-red-600 text-white font-bold text-xs flex items-center justify-center shadow-lg border-2 border-white cursor-pointer hover:scale-110 transition-transform animate-pulse"
-                title="Click to view Client Feedback Note"
+                key={pin.id}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setSelectedPinNote(pin);
+                  setShowPinCallout(true);
+                }}
+                style={{ left: `${pin.pinX}%`, top: `${pin.pinY}%` }}
+                className="absolute -translate-x-1/2 -translate-y-1/2 w-7 h-7 rounded-full bg-red-600 text-white font-bold text-xs flex items-center justify-center shadow-lg border-2 border-white cursor-pointer hover:scale-110 transition-transform"
+                title={pin.note}
               >
-                1
+                {idx + 1}
+              </div>
+            ))}
+
+            {/* Pin being placed for the feedback note currently being composed */}
+            {pendingPin && isChangesOpen && (
+              <div
+                style={{ left: `${pendingPin.x}%`, top: `${pendingPin.y}%` }}
+                className="absolute -translate-x-1/2 -translate-y-1/2 w-7 h-7 rounded-full bg-amber-500 text-white font-bold text-xs flex items-center justify-center shadow-lg border-2 border-white animate-pulse"
+              >
+                {slidePins.length + 1}
               </div>
             )}
           </div>
@@ -254,25 +309,25 @@ export function AssetReviewDetailView({
       </div>
 
       {/* Pin Callout Note Card matching content_detail.png */}
-      {showPinCallout && latestFeedback && (
+      {showPinCallout && (selectedPinNote || latestFeedback) && (
         <div className="p-4 rounded-xl bg-amber-50/80 border border-amber-200/80 flex items-start gap-3 shadow-whisper relative animate-in fade-in duration-200">
           <div className="w-6 h-6 rounded-full bg-amber-600 text-white text-xs font-bold flex items-center justify-center shrink-0 mt-0.5">
-            1
+            {slidePins.findIndex((p) => p.id === (selectedPinNote || latestFeedback)?.id) + 1 || 1}
           </div>
           <div className="flex-1 space-y-1">
             <div className="flex justify-between items-center text-xs">
               <span className="font-semibold text-amber-950">
-                Latest Client Revision Request ({latestFeedback.targetArea})
+                Client Revision Request ({(selectedPinNote || latestFeedback)?.targetArea})
               </span>
               <span className="text-amber-800 text-[11px]">
-                {latestFeedback.createdAt}
+                {(selectedPinNote || latestFeedback)?.createdAt}
               </span>
             </div>
             <p className="text-body-sm text-amber-900 leading-relaxed font-sans">
-              &ldquo;{latestFeedback.note}&rdquo;
+              &ldquo;{(selectedPinNote || latestFeedback)?.note}&rdquo;
             </p>
             <div className="text-[11px] text-amber-700 pt-0.5">
-              Reviewer: <span className="font-medium">{latestFeedback.reviewerName}</span>
+              Reviewer: <span className="font-medium">{(selectedPinNote || latestFeedback)?.reviewerName}</span>
             </div>
           </div>
           <button
@@ -521,11 +576,20 @@ export function AssetReviewDetailView({
       {/* Request Changes Modal */}
       <RequestChangesModal
         isOpen={isChangesOpen}
-        onClose={() => setIsChangesOpen(false)}
+        onClose={() => {
+          setIsChangesOpen(false);
+          setPendingPin(null);
+        }}
         assetTitle={currentItem.title}
         slideNumber={currentSlide + 1}
+        clientSlug={currentItem.clientSlug}
         onSendFeedback={(fb) => {
-          requestChanges(currentItem.id, fb);
+          requestChanges(currentItem.id, {
+            ...fb,
+            pinX: pendingPin?.x,
+            pinY: pendingPin?.y,
+          });
+          setPendingPin(null);
         }}
       />
 

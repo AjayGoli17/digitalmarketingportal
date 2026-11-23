@@ -11,7 +11,6 @@ import {
   LayoutGrid,
   List,
   FileText,
-  Download,
   Check,
   ArrowRight,
   ArrowLeft,
@@ -50,6 +49,7 @@ export function ClientWorkspaceView({
   const [proposeTitle, setProposeTitle] = React.useState("");
   const [proposeSuccess, setProposeSuccess] = React.useState(false);
   const [selectedReviewItem, setSelectedReviewItem] = React.useState<ClientDeliverable | null>(null);
+  const [signOffNotice, setSignOffNotice] = React.useState<string | null>(null);
 
   // Deliverables Reporting & Pacing
   const { items, clientQuotas } = useContentWorkflow();
@@ -91,6 +91,23 @@ export function ClientWorkspaceView({
 
   return (
     <div className="space-y-8 animate-in fade-in duration-300 pb-16">
+      {/* Transient Action Notice Banner */}
+      {signOffNotice && (
+        <div className="p-3.5 rounded-xl bg-emerald-50 border border-emerald-200 text-emerald-900 text-xs flex items-center justify-between shadow-whisper animate-in slide-in-from-top-2">
+          <div className="flex items-center gap-2">
+            <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0" />
+            <span className="font-medium">{signOffNotice}</span>
+          </div>
+          <button
+            type="button"
+            onClick={() => setSignOffNotice(null)}
+            className="text-emerald-700 hover:text-emerald-900 p-1"
+          >
+            <X className="w-3.5 h-3.5" />
+          </button>
+        </div>
+      )}
+
       {/* Top Header Section matching client_workspace.png */}
       <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-4">
         <div>
@@ -626,16 +643,6 @@ export function ClientWorkspaceView({
                     </div>
                   </div>
                 </div>
-
-                <Button
-                  variant="secondary"
-                  size="sm"
-                  className="w-full mt-5 bg-white justify-center"
-                  leftIcon={<Download className="w-3.5 h-3.5" />}
-                  onClick={() => alert("Brand kit package queued for download.")}
-                >
-                  Download Brand Kit
-                </Button>
               </Card>
             </div>
           </section>
@@ -1149,7 +1156,8 @@ export function ClientWorkspaceView({
                 variant="accent"
                 size="sm"
                 onClick={() => {
-                  alert("Sign-off recorded for " + selectedReviewItem.headline);
+                  setSignOffNotice(`Sign-off recorded for "${selectedReviewItem.headline}".`);
+                  setTimeout(() => setSignOffNotice(null), 4500);
                   setSelectedReviewItem(null);
                 }}
               >

@@ -6,11 +6,14 @@ import { usePathname } from "next/navigation";
 import { cn } from "@/lib/utils";
 import { useViewMode } from "@/components/context/ViewModeContext";
 import { CLIENT_TABS } from "@/lib/constants";
+import { SAMPLE_CLIENTS } from "@/lib/data/clients";
 import { ArrowLeft, User } from "lucide-react";
 
 export function ClientHeader() {
   const pathname = usePathname();
   const { selectedClient, toggleViewMode } = useViewMode();
+  const contactName =
+    SAMPLE_CLIENTS.find((c) => c.name === selectedClient)?.contactName || selectedClient;
 
   return (
     <header className="bg-white border-b border-hairline-subtle sticky top-0 z-30 select-none">
@@ -62,7 +65,7 @@ export function ClientHeader() {
           <div className="hidden lg:flex items-center gap-2 text-body-sm text-ink-secondary">
             <span className="w-2 h-2 rounded-full bg-[#16A34A]" />
             <span>
-              Agency Contact: <strong className="font-medium text-ink-primary">Studio Nord</strong>
+              Agency Contact: <strong className="font-medium text-ink-primary">Aura Editorial Agency</strong>
             </span>
           </div>
 
@@ -70,7 +73,7 @@ export function ClientHeader() {
           <div className="flex items-center gap-2.5 pl-4 border-l border-hairline-subtle">
             <div className="flex flex-col text-right hidden sm:flex">
               <span className="text-body-sm font-medium text-ink-primary leading-tight">
-                Elena Rostova
+                {contactName}
               </span>
               <span className="text-[11px] text-ink-tertiary">
                 Brand Lead

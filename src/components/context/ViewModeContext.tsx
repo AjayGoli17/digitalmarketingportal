@@ -1,6 +1,7 @@
 "use client";
 
 import React, { createContext, useContext, useState, useEffect } from "react";
+import { SAMPLE_CLIENTS } from "@/lib/data/clients";
 
 type ViewMode = "agency" | "client";
 
@@ -19,12 +20,33 @@ export function ViewModeProvider({ children }: { children: React.ReactNode }) {
   const [mode, setMode] = useState<ViewMode>("agency");
   const [selectedClient, setSelectedClient] = useState<string>("Kanso Botanicals");
 
-  // Load persisted view mode preference if present
+  // Direct link support: ?view=client|agency and &client=<slug> override the
+  // saved localStorage mode on first load.
   useEffect(() => {
-    const saved = localStorage.getItem("aura_view_mode");
-    if (saved === "client" || saved === "agency") {
-      setMode(saved);
+    const params = new URLSearchParams(window.location.search);
+    const viewParam = params.get("view");
+    const clientParam = params.get("client");
+
+    if (viewParam === "client" || viewParam === "agency") {
+      setMode(viewParam);
+      localStorage.setItem("aura_view_mode", viewParam);
+    } else {
+      const saved = localStorage.getItem("aura_view_mode");
+      if (saved === "client" || saved === "agency") {
+        setMode(saved);
+      }
     }
+
+    if (clientParam) {
+      const match = SAMPLE_CLIENTS.find(
+        (c) => c.slug.toLowerCase() === clientParam.trim().toLowerCase()
+      );
+      if (match) {
+        setSelectedClient(match.name);
+      }
+    }
+    // Intentionally only read the URL on first load, not on every navigation.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const toggleViewMode = () => {

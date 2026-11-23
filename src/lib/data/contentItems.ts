@@ -16,6 +16,9 @@ export interface FeedbackEntry {
   targetArea: "Caption & Copy" | "Slide Photo" | "Scheduling Time" | "Hashtags" | "General";
   note: string;
   slideNumber?: number;
+  pinX?: number; // percentage (0-100) across the image width
+  pinY?: number; // percentage (0-100) down the image height
+  referenceImageUrl?: string; // optional reference image the reviewer attached
   createdAt: string;
 }
 
@@ -31,6 +34,7 @@ export interface ContentSlide {
   subtitle?: string;
   bgGradient: string;
   filename?: string;
+  imageUrl?: string;
 }
 
 export interface ContentItem {
@@ -45,7 +49,7 @@ export interface ContentItem {
   statusLabel: string;
   day: number; // day of month 1-31
   month: number; // 1-12 (11 = Nov)
-  year: number; // 2024
+  year: number; // e.g. 2026
   time: string; // "09:30 AM"
   channels: PublishingChannel[];
   aspectRatio: "4:5" | "9:16" | "1:1";
@@ -63,6 +67,29 @@ export interface ContentItem {
   revisionCount?: number;
 }
 
+const TODAY = new Date();
+const MONTH_ABBR = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+
+function offsetDate(days: number): Date {
+  const d = new Date(TODAY);
+  d.setDate(d.getDate() + days);
+  return d;
+}
+
+function offsetParts(days: number): { day: number; month: number; year: number } {
+  const d = offsetDate(days);
+  return { day: d.getDate(), month: d.getMonth() + 1, year: d.getFullYear() };
+}
+
+function offsetStamp(days: number, hour: number, minute: number): string {
+  const d = offsetDate(days);
+  const ampm = hour >= 12 ? "PM" : "AM";
+  const h12 = hour % 12 || 12;
+  return `${MONTH_ABBR[d.getMonth()]} ${d.getDate()}, ${d.getFullYear()}, ${String(h12).padStart(2, "0")}:${String(
+    minute
+  ).padStart(2, "0")} ${ampm}`;
+}
+
 export const INITIAL_CONTENT_ITEMS: ContentItem[] = [
   {
     id: "item-1",
@@ -74,9 +101,7 @@ export const INITIAL_CONTENT_ITEMS: ContentItem[] = [
     formatLabel: "Post",
     status: "approved",
     statusLabel: "Approved",
-    day: 4,
-    month: 11,
-    year: 2024,
+    ...offsetParts(-11),
     time: "09:30 AM",
     channels: ["instagram"],
     aspectRatio: "4:5",
@@ -86,7 +111,7 @@ export const INITIAL_CONTENT_ITEMS: ContentItem[] = [
     previewHeroText: "Aura Botanica",
     approvalRecord: {
       approvedBy: "Elena Rostova (Client)",
-      approvedAt: "Nov 3, 2024, 02:15 PM",
+      approvedAt: offsetStamp(-12, 14, 15),
       comment: "Approved for scheduled publication.",
     },
     slides: [
@@ -109,9 +134,7 @@ export const INITIAL_CONTENT_ITEMS: ContentItem[] = [
     formatLabel: "Reel",
     status: "pending",
     statusLabel: "Pending Approval",
-    day: 6,
-    month: 11,
-    year: 2024,
+    ...offsetParts(-9),
     time: "05:00 PM",
     channels: ["instagram", "tiktok"],
     aspectRatio: "9:16",
@@ -140,9 +163,7 @@ export const INITIAL_CONTENT_ITEMS: ContentItem[] = [
     formatLabel: "Carousel",
     status: "changes",
     statusLabel: "Changes Requested",
-    day: 8,
-    month: 11,
-    year: 2024,
+    ...offsetParts(-7),
     time: "11:00 AM",
     channels: ["instagram", "pinterest"],
     aspectRatio: "4:5",
@@ -161,7 +182,7 @@ export const INITIAL_CONTENT_ITEMS: ContentItem[] = [
         targetArea: "Slide Photo",
         note: "Could we warm up the lighting on slide 2? The stone vessels look slightly too cool against the brand palette.",
         slideNumber: 2,
-        createdAt: "Nov 7, 2024, 04:30 PM",
+        createdAt: offsetStamp(-8, 16, 30),
       },
     ],
     slides: [
@@ -181,9 +202,7 @@ export const INITIAL_CONTENT_ITEMS: ContentItem[] = [
     formatLabel: "Story",
     status: "draft",
     statusLabel: "Draft",
-    day: 12,
-    month: 11,
-    year: 2024,
+    ...offsetParts(-3),
     time: "08:00 AM",
     channels: ["instagram"],
     aspectRatio: "9:16",
@@ -202,17 +221,15 @@ export const INITIAL_CONTENT_ITEMS: ContentItem[] = [
     formatLabel: "Reel",
     status: "published",
     statusLabel: "Published",
-    day: 14,
-    month: 11,
-    year: 2024,
+    ...offsetParts(-1),
     time: "06:30 PM",
     channels: ["instagram", "tiktok"],
     aspectRatio: "9:16",
     duration: "0:30",
-    publishedAt: "Nov 14, 2024, 06:30 PM",
+    publishedAt: offsetStamp(-1, 18, 30),
     approvalRecord: {
       approvedBy: "Elena Rostova (Client)",
-      approvedAt: "Nov 10, 2024, 11:00 AM",
+      approvedAt: offsetStamp(-5, 11, 0),
     },
     caption:
       "Nighttime restoration sequence. Four drops warmed in palms and applied with slow upward strokes. #EveningRitual #SlowBeauty",
@@ -229,9 +246,7 @@ export const INITIAL_CONTENT_ITEMS: ContentItem[] = [
     formatLabel: "Post",
     status: "approved",
     statusLabel: "Approved",
-    day: 15,
-    month: 11,
-    year: 2024,
+    ...offsetParts(0),
     time: "02:15 PM",
     channels: ["instagram", "pinterest"],
     aspectRatio: "4:5",
@@ -250,9 +265,7 @@ export const INITIAL_CONTENT_ITEMS: ContentItem[] = [
     formatLabel: "Story",
     status: "pending",
     statusLabel: "Pending",
-    day: 20,
-    month: 11,
-    year: 2024,
+    ...offsetParts(5),
     time: "10:00 AM",
     channels: ["instagram"],
     aspectRatio: "9:16",
@@ -271,9 +284,7 @@ export const INITIAL_CONTENT_ITEMS: ContentItem[] = [
     formatLabel: "Carousel",
     status: "pending",
     statusLabel: "Pending",
-    day: 14,
-    month: 11,
-    year: 2024,
+    ...offsetParts(-1),
     time: "10:30 AM",
     channels: ["instagram", "pinterest"],
     aspectRatio: "4:5",
@@ -300,9 +311,7 @@ export const INITIAL_CONTENT_ITEMS: ContentItem[] = [
     formatLabel: "Post",
     status: "approved",
     statusLabel: "Approved",
-    day: 22,
-    month: 11,
-    year: 2024,
+    ...offsetParts(7),
     time: "01:00 PM",
     channels: ["instagram"],
     aspectRatio: "4:5",
@@ -321,9 +330,7 @@ export const INITIAL_CONTENT_ITEMS: ContentItem[] = [
     formatLabel: "Post",
     status: "approved",
     statusLabel: "Approved",
-    day: 25,
-    month: 11,
-    year: 2024,
+    ...offsetParts(10),
     time: "11:30 AM",
     channels: ["instagram", "pinterest"],
     aspectRatio: "4:5",
@@ -342,9 +349,7 @@ export const INITIAL_CONTENT_ITEMS: ContentItem[] = [
     formatLabel: "Post",
     status: "approved",
     statusLabel: "Approved",
-    day: 27,
-    month: 11,
-    year: 2024,
+    ...offsetParts(12),
     time: "04:15 PM",
     channels: ["instagram"],
     aspectRatio: "4:5",
@@ -363,9 +368,7 @@ export const INITIAL_CONTENT_ITEMS: ContentItem[] = [
     formatLabel: "Post",
     status: "approved",
     statusLabel: "Approved",
-    day: 29,
-    month: 11,
-    year: 2024,
+    ...offsetParts(14),
     time: "05:45 PM",
     channels: ["instagram"],
     aspectRatio: "4:5",
@@ -385,9 +388,7 @@ export const INITIAL_CONTENT_ITEMS: ContentItem[] = [
     formatLabel: "Carousel",
     status: "approved",
     statusLabel: "Approved",
-    day: 8,
-    month: 11,
-    year: 2024,
+    ...offsetParts(-7),
     time: "09:00 AM",
     channels: ["instagram", "pinterest"],
     aspectRatio: "4:5",
@@ -407,9 +408,7 @@ export const INITIAL_CONTENT_ITEMS: ContentItem[] = [
     formatLabel: "Reel",
     status: "approved",
     statusLabel: "Approved",
-    day: 16,
-    month: 11,
-    year: 2024,
+    ...offsetParts(1),
     time: "02:00 PM",
     channels: ["instagram", "tiktok"],
     aspectRatio: "9:16",
@@ -418,5 +417,30 @@ export const INITIAL_CONTENT_ITEMS: ContentItem[] = [
       "35mm film memories of the Paris winter collection staging. Direct cuts from Marc Delacroix.",
     bgGradient: "from-[#D6CCC3] to-[#B3A698]",
     previewHeroText: "Maison Studio",
+  },
+  {
+    id: "item-ceramics-1",
+    clientSlug: "ceramics-and-form",
+    clientName: "Ceramics & Form",
+    clientInitials: "CE",
+    title: "Terra Firma Drop Preview",
+    format: "carousel",
+    formatLabel: "Carousel",
+    status: "scheduled",
+    statusLabel: "Scheduled",
+    ...offsetParts(6),
+    time: "09:00 AM",
+    channels: ["instagram", "pinterest"],
+    aspectRatio: "4:5",
+    slideCount: 3,
+    caption:
+      "Macro focus on raw stoneware textures and uneven rim glazes ahead of the Terra Firma release. #CeramicsAndForm #ArtisanInterior",
+    bgGradient: "from-[#D9D3CA] to-[#BDB4A7]",
+    previewHeroText: "Ceramics & Form",
+    approvalRecord: {
+      approvedBy: "Hannah Vance (Client)",
+      approvedAt: offsetStamp(4, 15, 0),
+      comment: "Approved for scheduled publication.",
+    },
   },
 ];

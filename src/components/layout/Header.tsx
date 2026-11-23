@@ -25,22 +25,22 @@ export function Header({
     if (breadcrumbs) return breadcrumbs;
 
     if (pathname === "/clients") {
-      return ["Aura Agency", "Client Workspaces"];
+      return ["Aura Editorial Agency", "Client Workspaces"];
     }
 
     if (pathname.startsWith("/clients/")) {
       const slug = pathname.replace("/clients/", "");
       const client = SAMPLE_CLIENTS.find((c) => c.slug === slug);
       if (client) {
-        return ["Aura Agency", client.name];
+        return ["Aura Editorial Agency", client.name];
       }
     }
 
     if (pathname === "/workspace") {
-      return ["Aura Agency", "Kanso Botanicals Workspace"];
+      return ["Aura Editorial Agency", "Kanso Botanicals Workspace"];
     }
 
-    return ["Aura Agency", "Acme Global Campaign"];
+    return ["Aura Editorial Agency", "Acme Global Campaign"];
   }, [breadcrumbs, pathname]);
 
   return (

@@ -6,7 +6,6 @@ import {
   ArrowUpDown,
   Filter,
   Play,
-  Download,
   CheckCircle2,
   Image as ImageIcon,
   Clock,
@@ -29,6 +28,7 @@ export function ClientGalleryView({
   const [formatFilter, setFormatFilter] = React.useState<string>("all");
   const [statusFilter, setStatusFilter] = React.useState<string>("all");
   const [selectedAsset, setSelectedAsset] = React.useState<ContentItem | null>(null);
+  const [batchNotice, setBatchNotice] = React.useState<string | null>(null);
 
   // Filter items belonging to this client
   const clientItems = React.useMemo(() => {
@@ -73,7 +73,8 @@ export function ClientGalleryView({
   const handleBatchApprove = () => {
     const pending = clientItems.filter((i) => i.status === "pending");
     if (pending.length === 0) {
-      alert("No deliverables currently pending client sign-off.");
+      setBatchNotice("No deliverables currently pending client sign-off.");
+      setTimeout(() => setBatchNotice(null), 4500);
       return;
     }
     pending.forEach((i) => approveContent(i.id));
@@ -269,8 +270,18 @@ export function ClientGalleryView({
               <div
                 className={`relative ${
                   isVideo ? "aspect-[9/14]" : "aspect-[4/5]"
-                } bg-gradient-to-br ${item.bgGradient} flex flex-col justify-between p-4 overflow-hidden`}
+                } ${
+                  item.slides?.[0]?.imageUrl ? "" : `bg-gradient-to-br ${item.bgGradient}`
+                } flex flex-col justify-between p-4 overflow-hidden`}
               >
+                {item.slides?.[0]?.imageUrl && (
+                  <img
+                    src={item.slides[0].imageUrl}
+                    className="absolute inset-0 w-full h-full object-cover z-0"
+                    alt={item.title}
+                  />
+                )}
+
                 {/* Top Badge */}
                 <div className="flex items-center justify-between z-20">
                   <Badge variant="frosted-dark" size="sm">
@@ -287,13 +298,13 @@ export function ClientGalleryView({
 
                 {/* Video Play Button Overlay */}
                 {isVideo && (
-                  <div className="w-14 h-14 rounded-full bg-white/90 backdrop-blur-md flex items-center justify-center text-ink-primary shadow-lg mx-auto my-auto transition-transform group-hover:scale-110">
+                  <div className="w-14 h-14 rounded-full bg-white/90 backdrop-blur-md flex items-center justify-center text-ink-primary shadow-lg mx-auto my-auto transition-transform group-hover:scale-110 z-20">
                     <Play className="w-6 h-6 fill-current ml-0.5" />
                   </div>
                 )}
 
                 {/* Visual Label */}
-                {!isVideo && (
+                {!isVideo && !item.slides?.[0]?.imageUrl && (
                   <div className="my-auto text-center p-6">
                     <span className="text-xl font-serif italic text-ink-primary block leading-tight">
                       {clientName}
@@ -374,15 +385,9 @@ export function ClientGalleryView({
         </div>
 
         <div className="flex items-center gap-2.5 self-end sm:self-auto">
-          <Button
-            variant="secondary"
-            size="sm"
-            leftIcon={<Download className="w-3.5 h-3.5" />}
-            onClick={() => alert("Archive download queued (Sample Mode).")}
-          >
-            Export Archive
-          </Button>
-
+          {batchNotice && (
+            <span className="text-xs text-amber-700 font-medium">{batchNotice}</span>
+          )}
           {pendingCount > 0 && (
             <Button
               variant="accent"

@@ -158,11 +158,11 @@ export function Sidebar({ className }: { className?: string }) {
         <div className="flex items-center justify-between p-2 rounded-lg hover:bg-surface-container-low transition-colors cursor-pointer">
           <div className="flex items-center gap-2.5">
             <div className="w-8 h-8 rounded-full bg-zinc-800 text-white flex items-center justify-center text-xs font-medium overflow-hidden border border-hairline-subtle">
-              <span>SN</span>
+              <span>AE</span>
             </div>
             <div className="flex flex-col text-left">
               <span className="text-body-sm font-medium text-ink-primary leading-tight">
-                Studio Nord
+                Aura Editorial Agency
               </span>
               <span className="text-[11px] text-ink-tertiary">
                 agency-lead

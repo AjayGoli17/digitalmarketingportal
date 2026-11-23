@@ -275,18 +275,10 @@ export default function ClientsDirectoryPage() {
           <span className="w-2 h-2 rounded-full bg-emerald-500 shrink-0" />
           <span>All client workspaces synced with production CDN</span>
           <span className="text-ink-tertiary">·</span>
-          <span className="text-ink-tertiary">Last asset updated 14m ago by Studio Nord</span>
+          <span className="text-ink-tertiary">Last asset updated 14m ago by Aura Editorial Agency</span>
         </div>
 
         <div className="flex items-center gap-4">
-          <button
-            type="button"
-            className="hover:text-ink-primary transition-colors cursor-pointer"
-            onClick={() => alert("Monthly audit report queued for download.")}
-          >
-            Export Monthly Audit
-          </button>
-          <span className="text-ink-tertiary">·</span>
           <span className="text-ink-tertiary">Archived Accounts (4)</span>
         </div>
       </div>

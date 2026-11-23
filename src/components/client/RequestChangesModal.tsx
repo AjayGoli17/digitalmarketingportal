@@ -1,18 +1,21 @@
 "use client";
 
 import * as React from "react";
-import { X, Send, Paperclip, Check, AlertCircle } from "lucide-react";
+import { X, Send, Paperclip, Check, AlertCircle, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/Button";
+import { uploadContentImage } from "@/lib/media";
 
 export interface RequestChangesModalProps {
   isOpen: boolean;
   onClose: () => void;
   assetTitle: string;
   slideNumber?: number;
+  clientSlug?: string;
   onSendFeedback?: (feedback: {
     targetArea: "Caption & Copy" | "Slide Photo" | "Scheduling Time" | "Hashtags" | "General";
     note: string;
     slideNumber?: number;
+    referenceImageUrl?: string;
   }) => void;
 }
 
@@ -21,6 +24,7 @@ export function RequestChangesModal({
   onClose,
   assetTitle,
   slideNumber = 1,
+  clientSlug = "general",
   onSendFeedback,
 }: RequestChangesModalProps) {
   const [targetArea, setTargetArea] = React.useState<
@@ -31,15 +35,46 @@ export function RequestChangesModal({
   );
   const [validationError, setValidationError] = React.useState<string | null>(null);
   const [submitted, setSubmitted] = React.useState(false);
+  const [referenceImageUrl, setReferenceImageUrl] = React.useState<string | undefined>(undefined);
+  const [uploadProgress, setUploadProgress] = React.useState<number | null>(null);
+  const [uploadError, setUploadError] = React.useState<string | null>(null);
+  const fileInputRef = React.useRef<HTMLInputElement>(null);
 
   React.useEffect(() => {
     if (isOpen) {
       setValidationError(null);
       setSubmitted(false);
+      setReferenceImageUrl(undefined);
+      setUploadProgress(null);
+      setUploadError(null);
     }
   }, [isOpen]);
 
   if (!isOpen) return null;
+
+  const handleFileSelected = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setUploadError(null);
+    setReferenceImageUrl(undefined);
+    setUploadProgress(0);
+    try {
+      const url = await uploadContentImage(file, clientSlug, (percent) => setUploadProgress(percent));
+      setReferenceImageUrl(url);
+      setUploadProgress(null);
+    } catch (err) {
+      setUploadProgress(null);
+      setUploadError(err instanceof Error ? err.message : "Failed to upload reference image.");
+    } finally {
+      if (fileInputRef.current) fileInputRef.current.value = "";
+    }
+  };
+
+  const handleRemoveReferenceImage = () => {
+    setReferenceImageUrl(undefined);
+    setUploadError(null);
+    setUploadProgress(null);
+  };
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -51,7 +86,7 @@ export function RequestChangesModal({
 
     setValidationError(null);
     if (onSendFeedback) {
-      onSendFeedback({ targetArea, note: trimmed, slideNumber });
+      onSendFeedback({ targetArea, note: trimmed, slideNumber, referenceImageUrl });
     }
     setSubmitted(true);
     setTimeout(() => {
@@ -187,18 +222,61 @@ export function RequestChangesModal({
             </div>
 
             {/* Attachment line */}
-            <div className="p-2.5 rounded-xl bg-surface-container-low/60 border border-hairline flex items-center justify-between text-xs">
-              <div className="flex items-center gap-2 text-ink-secondary">
-                <Paperclip className="w-3.5 h-3.5" />
-                <span>Attach reference or pin crop area</span>
+            <div className="p-2.5 rounded-xl bg-surface-container-low/60 border border-hairline space-y-2 text-xs">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2 text-ink-secondary">
+                  <Paperclip className="w-3.5 h-3.5" />
+                  <span>Attach a reference image</span>
+                </div>
+                {!referenceImageUrl && uploadProgress === null && (
+                  <button
+                    type="button"
+                    onClick={() => fileInputRef.current?.click()}
+                    className="bg-white border border-hairline px-2.5 py-1 rounded-md text-ink-primary font-medium hover:bg-zinc-50"
+                  >
+                    Add File
+                  </button>
+                )}
               </div>
-              <button
-                type="button"
-                onClick={() => alert("Reference file attached (Sample Mode).")}
-                className="bg-white border border-hairline px-2.5 py-1 rounded-md text-ink-primary font-medium hover:bg-zinc-50"
-              >
-                Add File
-              </button>
+
+              {uploadProgress !== null && (
+                <div className="flex items-center gap-2 text-ink-secondary">
+                  <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                  <span>Uploading… {uploadProgress}%</span>
+                </div>
+              )}
+
+              {uploadError && (
+                <div className="flex items-center gap-1.5 text-red-600 font-medium">
+                  <AlertCircle className="w-3.5 h-3.5 shrink-0" />
+                  <span>{uploadError}</span>
+                </div>
+              )}
+
+              {referenceImageUrl && (
+                <div className="flex items-center gap-2">
+                  <div className="w-12 h-12 rounded-lg overflow-hidden border border-hairline shrink-0">
+                    <img src={referenceImageUrl} className="w-full h-full object-cover" alt="Reference" />
+                  </div>
+                  <span className="text-ink-secondary flex-1">Reference image attached</span>
+                  <button
+                    type="button"
+                    onClick={handleRemoveReferenceImage}
+                    className="text-ink-tertiary hover:text-red-600 p-1"
+                    aria-label="Remove reference image"
+                  >
+                    <X className="w-3.5 h-3.5" />
+                  </button>
+                </div>
+              )}
+
+              <input
+                ref={fileInputRef}
+                type="file"
+                accept="image/*"
+                onChange={handleFileSelected}
+                className="hidden"
+              />
             </div>
 
             {/* Action buttons matching approvals.png */}

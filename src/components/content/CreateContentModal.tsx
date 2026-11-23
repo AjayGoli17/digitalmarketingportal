@@ -11,6 +11,8 @@ import {
   ShieldCheck,
   Check,
   Image as ImageIcon,
+  Loader2,
+  AlertCircle,
 } from "lucide-react";
 import { Button } from "@/components/ui/Button";
 import { Badge } from "@/components/ui/Badge";
@@ -18,9 +20,11 @@ import { Input } from "@/components/ui/Input";
 import {
   ContentItem,
   ContentFormat,
+  ContentSlide,
   PublishingChannel,
 } from "@/lib/data/contentItems";
 import { MONTH_NAMES, getDaysInMonth } from "@/lib/calendar";
+import { uploadContentImage } from "@/lib/media";
 
 export interface CreateContentModalProps {
   isOpen: boolean;
@@ -68,14 +72,12 @@ export function CreateContentModal({
   );
   const [currentSlideIndex, setCurrentSlideIndex] = React.useState(0);
   const [submitStatus, setSubmitStatus] = React.useState<"draft" | "pending">("pending");
-  const [slides, setSlides] = React.useState(
-    initialItem?.slides || [
-      { id: 1, title: "Hero Serum Still", bgGradient: "from-[#ECE5DC] to-[#D5CABE]" },
-      { id: 2, title: "Restorative Texture Focus", bgGradient: "from-[#DFD7CF] to-[#C9BFB5]" },
-      { id: 3, title: "Botanical Extracts", bgGradient: "from-[#DDD5CD] to-[#BFB4A8]" },
-      { id: 4, title: "Elena Founder Portrait", bgGradient: "from-[#D5CDC3] to-[#B8AEA0]" },
-    ]
-  );
+  const [slides, setSlides] = React.useState<ContentSlide[]>(initialItem?.slides || []);
+  const [uploadStates, setUploadStates] = React.useState<
+    Record<number, { progress: number; uploading?: boolean; error?: string }>
+  >({});
+  const [formError, setFormError] = React.useState<string | null>(null);
+  const fileInputRef = React.useRef<HTMLInputElement>(null);
 
   React.useEffect(() => {
     if (initialItem) {
@@ -106,22 +108,69 @@ export function CreateContentModal({
     );
   };
 
-  const handleAddSlide = () => {
-    const newId = slides.length + 1;
-    const gradients = [
-      "from-[#E6DFD5] to-[#CCC2B4]",
-      "from-[#DFD7CF] to-[#C9BFB5]",
-      "from-[#DDD5CD] to-[#BFB4A8]",
-      "from-[#D5CDC3] to-[#B8AEA0]",
-      "from-[#CFCBC8] to-[#ABA6A1]",
-    ];
-    const newSlide = {
-      id: newId,
-      title: `Slide ${newId} (Local Preview)`,
-      bgGradient: gradients[newId % gradients.length],
-    };
-    setSlides([...slides, newSlide]);
-    setCurrentSlideIndex(slides.length);
+  const allowMultipleImages = format === "carousel";
+
+  const handleFilesSelected = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const fileList = e.target.files;
+    if (!fileList || fileList.length === 0) return;
+    const files = allowMultipleImages ? Array.from(fileList) : [fileList[0]];
+
+    if (!allowMultipleImages) {
+      setSlides([]);
+      setUploadStates({});
+    }
+
+    setFormError(null);
+
+    for (const file of files) {
+      const id = Date.now() + Math.floor(Math.random() * 1000);
+      setSlides((prev) => [
+        ...prev,
+        { id, title: file.name, bgGradient: "from-[#DFD7CF] to-[#C9BFB5]" },
+      ]);
+      setUploadStates((prev) => ({ ...prev, [id]: { progress: 0, uploading: true } }));
+      setCurrentSlideIndex(slides.length);
+
+      try {
+        const url = await uploadContentImage(file, clientSlug, (percent) => {
+          setUploadStates((prev) => ({ ...prev, [id]: { progress: percent, uploading: true } }));
+        });
+        setSlides((prev) => prev.map((s) => (s.id === id ? { ...s, imageUrl: url } : s)));
+        setUploadStates((prev) => ({ ...prev, [id]: { progress: 100, uploading: false } }));
+      } catch (err) {
+        setUploadStates((prev) => ({
+          ...prev,
+          [id]: {
+            progress: 0,
+            uploading: false,
+            error: err instanceof Error ? err.message : "Upload failed.",
+          },
+        }));
+      }
+    }
+
+    if (fileInputRef.current) fileInputRef.current.value = "";
+  };
+
+  const handleRemoveSlide = (id: number) => {
+    setSlides((prev) => prev.filter((s) => s.id !== id));
+    setUploadStates((prev) => {
+      const next = { ...prev };
+      delete next[id];
+      return next;
+    });
+    setCurrentSlideIndex(0);
+  };
+
+  const handleMoveSlide = (id: number, direction: -1 | 1) => {
+    setSlides((prev) => {
+      const index = prev.findIndex((s) => s.id === id);
+      const newIndex = index + direction;
+      if (index === -1 || newIndex < 0 || newIndex >= prev.length) return prev;
+      const next = [...prev];
+      [next[index], next[newIndex]] = [next[newIndex], next[index]];
+      return next;
+    });
   };
 
   const handleSubmit = (e: React.FormEvent) => {
@@ -133,6 +182,20 @@ export function CreateContentModal({
         : finalStatus === "pending"
         ? "Pending Approval"
         : initialItem?.statusLabel || "Draft";
+
+    const stillUploading = Object.values(uploadStates).some((s) => s.uploading);
+    if (finalStatus === "pending" && stillUploading) {
+      setFormError("Please wait for images to finish uploading before sending for approval.");
+      return;
+    }
+
+    const hasUploadedImage = slides.some((s) => s.imageUrl);
+    if (finalStatus === "pending" && !hasUploadedImage) {
+      setFormError("Add at least one uploaded image before sending this deliverable for client approval.");
+      return;
+    }
+
+    setFormError(null);
 
     onSave({
       id: initialItem?.id,
@@ -292,15 +355,23 @@ export function CreateContentModal({
                 </>
               )}
 
-              {/* Visual Presentation / Texture representation */}
-              <div className="flex flex-col items-center justify-center text-center p-8 select-none">
-                <span className="text-2xl font-serif italic text-ink-primary tracking-wide">
-                  {currentSlide?.title || "Editorial Creative"}
-                </span>
-                <span className="text-xs text-ink-secondary tracking-widest uppercase mt-2 font-medium">
-                  {clientName} • Stage Asset
-                </span>
-              </div>
+              {/* Uploaded photo, or the placeholder gradient + label when none yet */}
+              {currentSlide?.imageUrl ? (
+                <img
+                  src={currentSlide.imageUrl}
+                  className="absolute inset-0 w-full h-full object-cover"
+                  alt={currentSlide.title || title}
+                />
+              ) : (
+                <div className="flex flex-col items-center justify-center text-center p-8 select-none">
+                  <span className="text-2xl font-serif italic text-ink-primary tracking-wide">
+                    {slides.length === 0 ? "No image uploaded yet" : currentSlide?.title || "Editorial Creative"}
+                  </span>
+                  <span className="text-xs text-ink-secondary tracking-widest uppercase mt-2 font-medium">
+                    {clientName} • Stage Asset
+                  </span>
+                </div>
+              )}
 
               {/* Bottom Metadata bar */}
               <div className="absolute bottom-3 inset-x-3 z-20 flex justify-between items-center text-[11px] text-white/90 font-mono drop-shadow">
@@ -311,49 +382,131 @@ export function CreateContentModal({
               </div>
             </div>
 
-            {/* Carousel Slides Strip */}
+            {/* Image Picker & Slides Strip */}
             <div className="space-y-2">
               <div className="flex justify-between items-center text-xs">
                 <span className="text-label-caps uppercase text-ink-tertiary font-semibold">
-                  Carousel Slides ({slides.length})
+                  {allowMultipleImages ? "Carousel Images" : "Image"} ({slides.length})
                 </span>
                 <span className="text-ink-tertiary text-[11px]">
-                  Local media selection (Storage sync in future prompt)
+                  Uploads to Supabase Storage
                 </span>
               </div>
 
-              <div className="flex items-center gap-3 overflow-x-auto pb-2">
-                {slides.map((s, idx) => (
-                  <button
-                    key={s.id}
-                    type="button"
-                    onClick={() => setCurrentSlideIndex(idx)}
-                    className={`relative w-16 h-20 rounded-lg overflow-hidden border-2 shrink-0 transition-all ${
-                      currentSlideIndex === idx
-                        ? "border-aura-primary shadow-sm scale-105"
-                        : "border-transparent opacity-80 hover:opacity-100"
-                    }`}
-                  >
-                    <div
-                      className={`w-full h-full bg-gradient-to-br ${s.bgGradient} flex items-center justify-center text-[10px] font-medium text-ink-secondary`}
-                    >
-                      <span className="absolute top-1 left-1.5 text-[10px] font-bold text-ink-primary">
-                        {idx + 1}
-                      </span>
-                    </div>
-                  </button>
-                ))}
+              {formError && (
+                <div className="flex items-center gap-1.5 text-xs text-red-600 font-medium">
+                  <AlertCircle className="w-3.5 h-3.5 shrink-0" />
+                  <span>{formError}</span>
+                </div>
+              )}
 
-                {/* Add Slide Button */}
-                <button
-                  type="button"
-                  onClick={handleAddSlide}
-                  className="w-16 h-20 rounded-lg border-2 border-dashed border-hairline-subtle hover:border-aura-primary/50 bg-white flex flex-col items-center justify-center text-ink-tertiary hover:text-aura-primary transition-colors shrink-0"
-                >
-                  <Plus className="w-4 h-4 mb-1" />
-                  <span className="text-[10px] font-medium">Add</span>
-                </button>
+              <div className="flex items-center gap-3 overflow-x-auto pb-2">
+                {slides.map((s, idx) => {
+                  const state = uploadStates[s.id];
+                  return (
+                    <div key={s.id} className="relative shrink-0 group/thumb">
+                      <button
+                        type="button"
+                        onClick={() => setCurrentSlideIndex(idx)}
+                        className={`relative w-16 h-20 rounded-lg overflow-hidden border-2 shrink-0 transition-all ${
+                          currentSlideIndex === idx
+                            ? "border-aura-primary shadow-sm scale-105"
+                            : "border-transparent opacity-80 hover:opacity-100"
+                        }`}
+                      >
+                        {s.imageUrl ? (
+                          <img
+                            src={s.imageUrl}
+                            className="w-full h-full object-cover"
+                            alt={s.title}
+                          />
+                        ) : (
+                          <div
+                            className={`w-full h-full bg-gradient-to-br ${s.bgGradient} flex items-center justify-center text-[10px] font-medium text-ink-secondary`}
+                          >
+                            {state?.uploading && (
+                              <Loader2 className="w-4 h-4 text-ink-primary animate-spin" />
+                            )}
+                            {state?.error && (
+                              <AlertCircle className="w-4 h-4 text-red-600" />
+                            )}
+                          </div>
+                        )}
+                        <span className="absolute top-1 left-1.5 text-[10px] font-bold text-white drop-shadow">
+                          {idx + 1}
+                        </span>
+                        {state?.uploading && (
+                          <span className="absolute bottom-0 inset-x-0 h-1 bg-black/20">
+                            <span
+                              className="h-full bg-aura-primary block transition-all"
+                              style={{ width: `${state.progress}%` }}
+                            />
+                          </span>
+                        )}
+                      </button>
+
+                      {state?.error && (
+                        <p className="text-[9px] text-red-600 w-16 leading-tight mt-0.5">{state.error}</p>
+                      )}
+
+                      {/* Remove & reorder controls */}
+                      <div className="absolute -top-1.5 -right-1.5 flex gap-0.5 opacity-0 group-hover/thumb:opacity-100 transition-opacity">
+                        <button
+                          type="button"
+                          onClick={() => handleRemoveSlide(s.id)}
+                          className="w-5 h-5 rounded-full bg-ink-primary text-white flex items-center justify-center shadow"
+                          aria-label="Remove image"
+                        >
+                          <X className="w-3 h-3" />
+                        </button>
+                      </div>
+                      {slides.length > 1 && (
+                        <div className="absolute -bottom-1.5 inset-x-0 flex justify-center gap-1 opacity-0 group-hover/thumb:opacity-100 transition-opacity">
+                          <button
+                            type="button"
+                            onClick={() => handleMoveSlide(s.id, -1)}
+                            disabled={idx === 0}
+                            className="w-5 h-5 rounded-full bg-white border border-hairline-subtle shadow flex items-center justify-center text-ink-secondary disabled:opacity-40"
+                            aria-label="Move left"
+                          >
+                            <ChevronLeft className="w-3 h-3" />
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => handleMoveSlide(s.id, 1)}
+                            disabled={idx === slides.length - 1}
+                            className="w-5 h-5 rounded-full bg-white border border-hairline-subtle shadow flex items-center justify-center text-ink-secondary disabled:opacity-40"
+                            aria-label="Move right"
+                          >
+                            <ChevronRight className="w-3 h-3" />
+                          </button>
+                        </div>
+                      )}
+                    </div>
+                  );
+                })}
+
+                {/* Add Image Button */}
+                {(allowMultipleImages || slides.length === 0) && (
+                  <button
+                    type="button"
+                    onClick={() => fileInputRef.current?.click()}
+                    className="w-16 h-20 rounded-lg border-2 border-dashed border-hairline-subtle hover:border-aura-primary/50 bg-white flex flex-col items-center justify-center text-ink-tertiary hover:text-aura-primary transition-colors shrink-0"
+                  >
+                    <Plus className="w-4 h-4 mb-1" />
+                    <span className="text-[10px] font-medium">Add</span>
+                  </button>
+                )}
               </div>
+
+              <input
+                ref={fileInputRef}
+                type="file"
+                accept="image/*"
+                multiple={allowMultipleImages}
+                onChange={handleFilesSelected}
+                className="hidden"
+              />
             </div>
           </div>
 

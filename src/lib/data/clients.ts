@@ -45,6 +45,7 @@ export interface Client {
   code: string; // e.g. "CLIENT 04"
   name: string;
   initials: string;
+  contactName: string; // Primary client-side contact, used for approvals & sign-off
   category: string;
   industry: string;
   retainerTier: string;
@@ -67,6 +68,16 @@ export interface Client {
   activePipeline: ClientDeliverable[];
 }
 
+const CURRENT_CYCLE_LABEL = `${new Date().toLocaleString("en-US", { month: "long" })} ${new Date().getFullYear()}`;
+
+const SCHEDULED_LABEL_MONTH_ABBR = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+
+function scheduledLabel(daysFromToday: number): string {
+  const d = new Date();
+  d.setDate(d.getDate() + daysFromToday);
+  return `Scheduled ${SCHEDULED_LABEL_MONTH_ABBR[d.getMonth()]} ${d.getDate()}`;
+}
+
 export const SAMPLE_CLIENTS: Client[] = [
   {
     id: "c1",
@@ -74,13 +85,14 @@ export const SAMPLE_CLIENTS: Client[] = [
     code: "CLIENT 04",
     name: "Kanso Botanicals",
     initials: "KB",
+    contactName: "Elena Rostova",
     category: "Clean Skincare",
     industry: "Skincare & Wellness",
     retainerTier: "Monthly Retainer Tier II",
     platforms: ["instagram", "video", "pinterest"],
     status: "active",
     statusLabel: "Active Retainer",
-    cycle: "November 2024",
+    cycle: CURRENT_CYCLE_LABEL,
     cycleProgress: 83,
     deliveredCount: 10,
     totalQuotas: 12,
@@ -115,7 +127,7 @@ export const SAMPLE_CLIENTS: Client[] = [
         caption:
           '"Quiet formulations for loud environments. Introducing Batch 04, steeped with cold-pressed meadowfoam and raw maritime cedar."',
         channelLabel: "INSTAGRAM FEED",
-        scheduledDate: "Scheduled Nov 2",
+        scheduledDate: scheduledLabel(0),
         avatarText: "KB",
         footerAuthor: "Kanso Feed",
       },
@@ -133,7 +145,7 @@ export const SAMPLE_CLIENTS: Client[] = [
         caption:
           "Atmospheric morning sequence documenting slow botanic distillation and sunrise tea preparation. Studio sound design layered...",
         channelLabel: "TIKTOK + IG REEL",
-        scheduledDate: "Scheduled Nov 4",
+        scheduledDate: scheduledLabel(2),
         avatarText: "KB",
         footerAuthor: "Editorial Cut v2",
       },
@@ -152,7 +164,7 @@ export const SAMPLE_CLIENTS: Client[] = [
         headline: "Ceramic Ritual Holders",
         caption: "Architectural stillness paired with tactile st...",
         channelLabel: "Instagram Feed",
-        scheduledDate: "Scheduled Nov 8",
+        scheduledDate: scheduledLabel(6),
         avatarText: "KB",
         footerAuthor: "Studio Feed",
         slideCount: 4,
@@ -170,7 +182,7 @@ export const SAMPLE_CLIENTS: Client[] = [
         headline: "Exclusive Drop Preview",
         caption: "Architectural light studies with direct RSVP...",
         channelLabel: "Instagram Story",
-        scheduledDate: "Scheduled Nov 10",
+        scheduledDate: scheduledLabel(8),
         avatarText: "KB",
         footerAuthor: "Stories Engine",
       },
@@ -182,13 +194,14 @@ export const SAMPLE_CLIENTS: Client[] = [
     code: "CLIENT 02",
     name: "Alta Living",
     initials: "AL",
+    contactName: "Marcus Vance",
     category: "Boutique Architecture",
     industry: "Hospitality & Interiors",
     retainerTier: "Monthly Retainer Tier I",
     platforms: ["instagram", "bag"],
     status: "active",
     statusLabel: "Active Retainer",
-    cycle: "November 2024",
+    cycle: CURRENT_CYCLE_LABEL,
     cycleProgress: 77,
     deliveredCount: 14,
     totalQuotas: 18,
@@ -223,7 +236,7 @@ export const SAMPLE_CLIENTS: Client[] = [
         caption:
           "Monolithic volume framed by south-facing floor-to-ceiling glazing. A dialogue between stone weight and morning lightness.",
         channelLabel: "INSTAGRAM FEED",
-        scheduledDate: "Scheduled Nov 6",
+        scheduledDate: scheduledLabel(4),
         avatarText: "AL",
         footerAuthor: "Alta Curations",
       },
@@ -242,7 +255,7 @@ export const SAMPLE_CLIENTS: Client[] = [
         headline: "Atelier Suite Walkthrough",
         caption: "Swipe-up room tour and reservation link...",
         channelLabel: "Instagram Story",
-        scheduledDate: "Scheduled Nov 12",
+        scheduledDate: scheduledLabel(10),
         avatarText: "AL",
         footerAuthor: "Alta Media",
       },
@@ -254,13 +267,14 @@ export const SAMPLE_CLIENTS: Client[] = [
     code: "CLIENT 01",
     name: "Maison Studio",
     initials: "MS",
+    contactName: "Marc Delacroix",
     category: "Luxury Fashion",
     industry: "Luxury Fashion",
     retainerTier: "Bespoke Editorial Retainer",
     platforms: ["bag", "video", "instagram"],
     status: "in_production",
     statusLabel: "In Production",
-    cycle: "November 2024",
+    cycle: CURRENT_CYCLE_LABEL,
     cycleProgress: 100,
     deliveredCount: 8,
     totalQuotas: 8,
@@ -295,7 +309,7 @@ export const SAMPLE_CLIENTS: Client[] = [
         headline: "Behind The Lens: AW24",
         caption: "Final studio master certified for multi-channel launch.",
         channelLabel: "TIKTOK + REEL",
-        scheduledDate: "Scheduled Nov 16",
+        scheduledDate: scheduledLabel(14),
         avatarText: "MS",
         footerAuthor: "Editorial Cut",
       },
@@ -307,13 +321,14 @@ export const SAMPLE_CLIENTS: Client[] = [
     code: "CLIENT 03",
     name: "Ceramics & Form",
     initials: "CE",
+    contactName: "Hannah Vance",
     category: "Artisan Interior",
     industry: "Artisan Interior",
     retainerTier: "Monthly Retainer Tier I",
     platforms: ["instagram", "pinterest"],
     status: "active",
     statusLabel: "Active Retainer",
-    cycle: "November 2024",
+    cycle: CURRENT_CYCLE_LABEL,
     cycleProgress: 60,
     deliveredCount: 6,
     totalQuotas: 10,
@@ -348,9 +363,9 @@ export const SAMPLE_CLIENTS: Client[] = [
         caption:
           '"Each silhouette carries deliberate imperfections from the wood-fired kiln. Limited release of 45 numbered pieces."',
         channelLabel: "INSTAGRAM FEED",
-        scheduledDate: "Scheduled Nov 19",
+        scheduledDate: scheduledLabel(17),
         avatarText: "CE",
-        footerAuthor: "Studio Nord Edit",
+        footerAuthor: "Aura Editorial Edit",
       },
     ],
     activePipeline: [],

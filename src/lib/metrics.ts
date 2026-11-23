@@ -1,6 +1,10 @@
 import { ContentItem, ContentFormat } from "@/lib/data/contentItems";
 import { Client, ClientQuotas, SAMPLE_CLIENTS } from "@/lib/data/clients";
 
+const now = new Date();
+const CURRENT_MONTH = now.getMonth() + 1;
+const CURRENT_YEAR = now.getFullYear();
+
 /**
  * AURA EDITORIAL AGENCY - DELIVERABLES METRICS & COUNTING RULES ENGINE
  *
@@ -166,8 +170,8 @@ export function calculateClientMonthlyReport(
 ): ClientMonthlyReport {
   let clientSlug: string = "kanso-botanicals";
   let allItems: ContentItem[] = [];
-  let month: number = 11;
-  let year: number = 2024;
+  let month: number = CURRENT_MONTH;
+  let year: number = CURRENT_YEAR;
   let customQuotas: ClientQuotas | undefined;
 
   if (typeof arg2 === "string") {
@@ -175,14 +179,14 @@ export function calculateClientMonthlyReport(
     clientSlug = typeof arg1 === "string" ? arg1 : (arg1 as Client)?.slug || "kanso-botanicals";
     allItems = Array.isArray(arg3) ? arg3 : [];
     customQuotas = typeof arg4 === "object" && arg4 !== null ? (arg4 as ClientQuotas) : undefined;
-    month = typeof arg5 === "number" ? arg5 : 11;
-    year = typeof arg6 === "number" ? arg6 : 2024;
+    month = typeof arg5 === "number" ? arg5 : CURRENT_MONTH;
+    year = typeof arg6 === "number" ? arg6 : CURRENT_YEAR;
   } else {
     // Called as (clientOrSlug, allItems, month, year, customQuotas)
     clientSlug = typeof arg1 === "string" ? arg1 : (arg1 as Client)?.slug || "kanso-botanicals";
     allItems = Array.isArray(arg2) ? arg2 : [];
-    month = typeof arg3 === "number" ? arg3 : 11;
-    year = typeof arg4 === "number" ? arg4 : 2024;
+    month = typeof arg3 === "number" ? arg3 : CURRENT_MONTH;
+    year = typeof arg4 === "number" ? arg4 : CURRENT_YEAR;
     customQuotas = typeof arg5 === "object" && arg5 !== null ? (arg5 as ClientQuotas) : undefined;
   }
 
@@ -250,8 +254,8 @@ export function calculateClientMonthlyReport(
       (clientTargetName && itemSlug.includes(clientTargetName)) ||
       (itemName && clientTargetName.includes(itemName));
 
-    const itemMonth = typeof item.month === "number" ? item.month : 11;
-    const itemYear = typeof item.year === "number" ? item.year : 2024;
+    const itemMonth = typeof item.month === "number" ? item.month : CURRENT_MONTH;
+    const itemYear = typeof item.year === "number" ? item.year : CURRENT_YEAR;
     const matchesDate = itemMonth === month && itemYear === year;
 
     return Boolean(matchesClient && matchesDate);
@@ -350,26 +354,26 @@ export function calculateAgencyDashboardMetrics(
     allItems = arg1;
     clients = Array.isArray(arg2) ? arg2 : SAMPLE_CLIENTS;
     clientQuotaOverrides = arg3;
-    month = typeof arg4 === "number" ? arg4 : 11;
-    year = typeof arg5 === "number" ? arg5 : 2024;
+    month = typeof arg4 === "number" ? arg4 : CURRENT_MONTH;
+    year = typeof arg5 === "number" ? arg5 : CURRENT_YEAR;
   } else if (Array.isArray(arg2) && (arg2.length === 0 || "format" in arg2[0])) {
     // Called as (clients, allItems, month, year, clientQuotaOverrides) or (clients, allItems, clientQuotaOverrides, month, year)
     clients = Array.isArray(arg1) ? arg1 : SAMPLE_CLIENTS;
     allItems = arg2;
     if (typeof arg3 === "number") {
       month = arg3;
-      year = typeof arg4 === "number" ? arg4 : 2024;
+      year = typeof arg4 === "number" ? arg4 : CURRENT_YEAR;
       clientQuotaOverrides = arg5;
     } else {
       clientQuotaOverrides = arg3;
-      month = typeof arg4 === "number" ? arg4 : 11;
-      year = typeof arg5 === "number" ? arg5 : 2024;
+      month = typeof arg4 === "number" ? arg4 : CURRENT_MONTH;
+      year = typeof arg5 === "number" ? arg5 : CURRENT_YEAR;
     }
   } else {
     clients = Array.isArray(arg1) ? arg1 : SAMPLE_CLIENTS;
     allItems = Array.isArray(arg2) ? arg2 : [];
-    month = typeof arg3 === "number" ? arg3 : 11;
-    year = typeof arg4 === "number" ? arg4 : 2024;
+    month = typeof arg3 === "number" ? arg3 : CURRENT_MONTH;
+    year = typeof arg4 === "number" ? arg4 : CURRENT_YEAR;
     clientQuotaOverrides = typeof arg5 === "object" ? arg5 : undefined;
   }
 
@@ -405,7 +409,7 @@ export function calculateAgencyDashboardMetrics(
 
   // Content published in this month across all clients
   const contentPublishedThisMonthCount = safeItems.filter(
-    (i) => i && isDeliverableCompleted(i) && (i.month || 11) === month && (i.year || 2024) === year
+    (i) => i && isDeliverableCompleted(i) && (i.month || CURRENT_MONTH) === month && (i.year || CURRENT_YEAR) === year
   ).length;
 
   const overallCompletionPercentage = safePercentage(totalCompleted, totalPromised);
